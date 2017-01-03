@@ -207,6 +207,8 @@ sys_reboot(int code)
  * Kernel main. Boot up, then fork the menu thread; wait for a reboot
  * request, and then shut down.
  */
+
+// It's main....
 void
 kmain(char *arguments)
 {
