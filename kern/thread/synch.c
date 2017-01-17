@@ -155,7 +155,7 @@ lock_create(const char *name)
 	}
 
 	// add stuff here as needed
-
+    KASSERT(lock->is_acquired == 0);
 	return lock;
 }
 
@@ -165,7 +165,7 @@ lock_destroy(struct lock *lock)
 	KASSERT(lock != NULL);
 
 	// add stuff here as needed
-
+    KASSERT(lock->is_acquired == 0);
 	kfree(lock->lk_name);
 	kfree(lock);
 }
@@ -174,26 +174,27 @@ void
 lock_acquire(struct lock *lock)
 {
 	// Write this
-
-	(void)lock;  // suppress warning until code gets written
+    KASSERT(lock != NULL);
+    lock->is_acquired = 1;
 }
 
 void
 lock_release(struct lock *lock)
 {
 	// Write this
-
-	(void)lock;  // suppress warning until code gets written
+    KASSERT(lock != NULL);
+    lock->is_acquired = 0;
 }
 
 bool
 lock_do_i_hold(struct lock *lock)
 {
 	// Write this
+    KASSERT(lock != NULL);
+    if(lock->is_acquired == 1)
+        return true;
 
-	(void)lock;  // suppress warning until code gets written
-
-	return true; // dummy until code gets written
+	return false; // dummy until code gets written
 }
 
 ////////////////////////////////////////////////////////////
