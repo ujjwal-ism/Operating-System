@@ -208,11 +208,12 @@ lock_release(struct lock *lock)
 	// Write this
     KASSERT(lock != NULL);
     spinlock_acquire(&lock->spin_lock);
-    if(lock->is_acquired == 1 && lock->currthread == curthread) {
-        lock->is_acquired = 0;
-        lock->currthread = NULL;
-        wchan_wakeone(lock->lock_wchan, &lock->spin_lock);
-    }
+    KASSERT(lock->is_acquired == 1 );
+    KASSERT(lock->currthread == curthread );
+    lock->is_acquired = 0;
+    lock->currthread = NULL;
+    wchan_wakeone(lock->lock_wchan, &lock->spin_lock);
+    
     spinlock_release(&lock->spin_lock);
 }
 
