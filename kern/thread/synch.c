@@ -113,6 +113,9 @@ P(struct semaphore *sem)
 		 * Exercise: how would you implement strict FIFO
 		 * ordering?
 		 */
+        // TODO
+        //
+        //
 		wchan_sleep(sem->sem_wchan, &sem->sem_lock);
 	}
 	KASSERT(sem->sem_count > 0);
@@ -154,8 +157,17 @@ lock_create(const char *name)
 		return NULL;
 	}
 
+	lock->lock_wchan = wchan_create(lock->lk_name);
+	if (lock->lock_wchan == NULL) {
+		kfree(lock->lk_name);
+		kfree(lock);
+		return NULL;
+	}
+
+	spinlock_init(&lock->spin_lock);
 	// add stuff here as needed
-    KASSERT(lock->is_acquired == 0);
+    lock->is_acquired = 0;
+    lock->currthread = NULL;
 	return lock;
 }
 
@@ -166,7 +178,10 @@ lock_destroy(struct lock *lock)
 
 	// add stuff here as needed
     KASSERT(lock->is_acquired == 0);
+    spinlock_cleanup(&lock->spin_lock);
 	kfree(lock->lk_name);
+    kfree(lock->lock_wchan);
+    lock->currthread = NULL;
 	kfree(lock);
 }
 
@@ -175,7 +190,17 @@ lock_acquire(struct lock *lock)
 {
 	// Write this
     KASSERT(lock != NULL);
+    spinlock_acquire(&lock->spin_lock);
+    while(lock->is_acquired == 1){ 
+		wchan_sleep(lock->lock_wchan, &lock->spin_lock);
+        spinlock_acquire(&lock->spin_lock);
+    }
+    KASSERT(lock->is_acquired == 0);
     lock->is_acquired = 1;
+    lock->currthread = curthread;
+    
+    spinlock_release(&lock->spin_lock);
+    
 }
 
 void
@@ -183,7 +208,13 @@ lock_release(struct lock *lock)
 {
 	// Write this
     KASSERT(lock != NULL);
-    lock->is_acquired = 0;
+    spinlock_acquire(&lock->spin_lock);
+	if(lock_do_i_hold(lock)){
+        lock->is_acquired = 0;
+        lock->currthread = NULL;
+        wchan_wakeone(lock->lock_wchan, &lock->spin_lock);
+    }
+    spinlock_release(&lock->spin_lock);
 }
 
 bool
@@ -191,10 +222,12 @@ lock_do_i_hold(struct lock *lock)
 {
 	// Write this
     KASSERT(lock != NULL);
-    if(lock->is_acquired == 1)
-        return true;
-
-	return false; // dummy until code gets written
+    bool do_i_hold = false;
+    spinlock_acquire(&lock->spin_lock);
+    if(lock->is_acquired == 1 && lock->currthread == curthread)
+        do_i_hold = true;
+    spinlock_release(&lock->spin_lock);
+	return do_i_hold; 
 }
 
 ////////////////////////////////////////////////////////////
