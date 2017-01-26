@@ -193,7 +193,6 @@ lock_acquire(struct lock *lock)
     spinlock_acquire(&lock->spin_lock);
     while(lock->is_acquired == 1){ 
 		wchan_sleep(lock->lock_wchan, &lock->spin_lock);
-        spinlock_acquire(&lock->spin_lock);
     }
     KASSERT(lock->is_acquired == 0);
     lock->is_acquired = 1;
@@ -209,7 +208,7 @@ lock_release(struct lock *lock)
 	// Write this
     KASSERT(lock != NULL);
     spinlock_acquire(&lock->spin_lock);
-	if(lock_do_i_hold(lock)){
+    if(lock->is_acquired == 1 && lock->currthread == curthread) {
         lock->is_acquired = 0;
         lock->currthread = NULL;
         wchan_wakeone(lock->lock_wchan, &lock->spin_lock);
